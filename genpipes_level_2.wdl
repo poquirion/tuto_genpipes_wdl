@@ -1,19 +1,22 @@
 task picard_sam_to_fastq {
   Object readset
+  String CPU
+  String RAM
   command<<<
+    # note that cromwell knows about runtime and will use these entry to select the right machine
     cat << EOF
     module load mugqic/java/openjdk-jdk1.8.0_72 mugqic/picard/2.9.0 && \
     java -Djava.io.tmpdir=$TMPDIR -XX:+UseParallelGC \
-    -XX:ParallelGCThreads=1 -Dsamjdk.buffer_size=4194304 -Xmx18G -jar \
+    -XX:ParallelGCThreads=${CPU} -Dsamjdk.buffer_size=4194304 -Xmx${RAM} -jar \
     $PICARD_HOME/picard.jar SamToFastq \
     VALIDATION_STRINGENCY=LENIENT \
-    INPUT=~{readset.bam} \
-    FASTQ=~{readset.name}_pair1.fatsq.gz \
-    SECOND_END_FASTQ=~{readset.name}_pair2.fastq.gz
+    INPUT=${readset.bam} \
+    FASTQ=${readset.name}_pair1.fatsq.gz \
+    SECOND_END_FASTQ=${readset.name}_pair2.fastq.gz
     EOF
     # fake pipeline !
-    touch ~{readset.name}_pair1.fatsq.gz
-    touch ~{readset.name}_pair2.fastq.gz
+    touch ${readset.name}_pair1.fatsq.gz
+    touch ${readset.name}_pair2.fastq.gz
   >>>
   output {
     File out1 = "${readset.name}_pair1.fatsq.gz"
@@ -26,21 +29,15 @@ task sym_link_fastq {
   String in1
   String in2
   command<<<
-    cat << EOF
-    mkdir -p deliverables/~{sample.name}/wgs/raw_reads && \
+        mkdir -p deliverables/${sample}/wgs/raw_reads && \
     ln -sf \
-    ~{in1} \
-    deliverables/~{sample}/wgs/raw_reads/~{readset.name}.pair1.fastq.gz && \
-    mkdir -p deliverables/~{sample}/wgs/raw_reads && \
+    ${in1} \
+    deliverables/${sample}/wgs/raw_reads/${readset.name}.pair1.fastq.gz && \
+    mkdir -p deliverables/${sample}/wgs/raw_reads && \
     ln -sf \
-    ~{in2} \
-    deliverables/~{sample}/wgs/raw_reads/~{readset.name}.pair2.fastq.gz
-    EOF
-    # fake pipeline !
-    mkdir -p deliverables/${sample}/wgs/raw_reads/
-    touch deliverables/~{sample}/wgs/raw_reads/~{readset.name}.pair1.fastq.gz
-    touch deliverables/~{sample}/wgs/raw_reads/~{readset.name}.pair2.fastq.gz
-  >>>
+    ${in2} \
+    deliverables/${sample}/wgs/raw_reads/${readset.name}.pair2.fastq.gz
+    >>>
   output {
     File out1 = "deliverables/${sample}/wgs/raw_reads/${readset.name}.pair1.fastq.gz"
     File out2 = "deliverables/${sample}/wgs/raw_reads/${readset.name}.pair2.fastq.gz"

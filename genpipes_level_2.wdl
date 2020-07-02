@@ -1,7 +1,7 @@
 task picard_sam_to_fastq {
   Object readset
-  String CPU
-  String RAM
+  String CPU = "1"
+  String RAM = "1G"
   command<<<
     # note that cromwell knows about runtime and will use these entry to select the right machine
     cat << EOF
@@ -15,12 +15,12 @@ task picard_sam_to_fastq {
     SECOND_END_FASTQ=${readset.name}_pair2.fastq.gz
     EOF
     # fake pipeline !
-    touch ${readset.name}_pair1.fatsq.gz
-    touch ${readset.name}_pair2.fastq.gz
+    echo I am some fake fastq ${readset.name} > ${readset.name}_pair1.fatsq
+    echo I am some fake fastq ${readset.name} > ${readset.name}_pair2.fastq
   >>>
   output {
-    File out1 = "${readset.name}_pair1.fatsq.gz"
-    File out2 = "${readset.name}_pair2.fastq.gz"
+    File out1 = "${readset.name}_pair1.fatsq"
+    File out2 = "${readset.name}_pair2.fastq"
   }
 }
 task sym_link_fastq {
@@ -43,7 +43,7 @@ task sym_link_fastq {
     File out2 = "deliverables/${sample}/wgs/raw_reads/${readset.name}.pair2.fastq.gz"
   }
 }
-workflow wf {
+workflow l2_wf {
   String sample
   Array[Object] readsets
 
@@ -55,6 +55,12 @@ workflow wf {
         readset=readset, sample=sample,
         in1=picard_sam_to_fastq.out1,
         in2=picard_sam_to_fastq.out2
+    }
+
+    # to be passed to the main wf
+    output{
+      Array[File] out1 = picard_sam_to_fastq.out1
+      Array[File] out2 = picard_sam_to_fastq.out2
     }
 
   }
